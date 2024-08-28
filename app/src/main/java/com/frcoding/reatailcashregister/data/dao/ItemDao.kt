@@ -1,0 +1,27 @@
+package com.frcoding.reatailcashregister.data.dao
+
+import androidx.room.Dao
+import androidx.room.Delete
+import androidx.room.Insert
+import androidx.room.Query
+import androidx.room.Update
+import com.frcoding.reatailcashregister.models.Item
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface ItemDao {
+    @Insert
+    suspend fun insertItem(item: Item)
+
+    @Update
+    suspend fun updateItem(item: Item)
+
+    @Delete
+    suspend fun deleteItem(item: Item)
+
+    @Query("SELECT * FROM items")
+    fun getAllItems(): Flow<List<Item>>
+
+    @Query("DELETE FROM items")
+    suspend fun deleteAllItems()
+}
