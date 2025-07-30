@@ -8,12 +8,12 @@ class SessionManager @Inject constructor(
 ) {
     private val prefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
 
-    fun saveUserId(userId: Int) {
-        prefs.edit().putInt("current_user_id", userId).apply()
+    fun saveUserId(userId: Long) {
+        prefs.edit().putLong("current_user_id", userId).apply()
     }
 
-    fun getUserId(): Int? {
-        return prefs.getInt("current_user_id", -1).takeIf { it != -1 }
+    fun getUserId(): Long? {
+        return prefs.getLong("current_user_id", -1).takeIf { it != -1L }
     }
 
     fun clearSession() {

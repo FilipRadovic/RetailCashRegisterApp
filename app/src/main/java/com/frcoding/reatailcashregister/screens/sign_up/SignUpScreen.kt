@@ -10,7 +10,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -27,7 +26,6 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.frcoding.reatailcashregister.R
-import com.frcoding.reatailcashregister.screens.sign_in.SignInViewModel
 
 @Composable
 fun SignUpScreen(
@@ -80,9 +78,7 @@ fun SignUpScreen(
 
         Button(
             onClick = { viewModel.onSignUpClick()
-                // Optionally navigate to sign-in screen or show a success message
-                navController.navigate("sign_in_screen")
-                      },
+                navController.navigate("sign_in_screen") },
             modifier = modifier
                 .fillMaxWidth()
                 .padding(16.dp, 0.dp)
@@ -93,7 +89,5 @@ fun SignUpScreen(
                 modifier = Modifier.padding(0.dp, 6.dp)
             )
         }
-
     }
-
 }

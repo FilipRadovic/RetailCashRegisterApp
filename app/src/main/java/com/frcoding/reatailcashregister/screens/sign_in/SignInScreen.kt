@@ -10,7 +10,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -72,10 +71,6 @@ fun SignInScreen(
         Button(
             onClick = {
                 viewModel.onSignInClick()
-//                loginResult?.let {
-//                    //Navigacija na glavni ekran
-//                    navController.navigate("main_screen")
-//                }
                       },
             modifier = modifier
                 .fillMaxWidth()
@@ -94,7 +89,6 @@ fun SignInScreen(
 
         TextButton(
             onClick = {
-            //preusmeravanje na sign up stranicu
                 navController.navigate("sign_up_screen")
             }
         ) {
@@ -104,14 +98,11 @@ fun SignInScreen(
 
     LaunchedEffect(loginResult.value) {
         loginResult.value?.let { user ->
-            // Check if user is not null (meaning login was successful)
             if (user != null) {
                 navController.navigate("main_screen") {
-                    // Clear the back stack to avoid returning to the login screen
                     popUpTo("sign_in_screen") { inclusive = true }
                 }
             }
         }
     }
-
 }

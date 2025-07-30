@@ -36,9 +36,8 @@ class SignInViewModel @Inject constructor(
             try {
                 val user = userRepository.loginUser(username.value, password.value)
                 if (user != null) {
-                    sessionManager.saveUserId(user.id)
+                    sessionManager.saveUserId(user.id!!)
                     _loginResult.value = user
-                    // Navigacija na glavni ekran nakon prijave
                 } else {
                     // Handle login failure, e.g., show an error message
                 }
@@ -47,5 +46,4 @@ class SignInViewModel @Inject constructor(
             }
         }
     }
-
 }

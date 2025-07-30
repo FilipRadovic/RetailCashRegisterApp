@@ -1,37 +1,38 @@
 package com.frcoding.reatailcashregister.repository
 
-import com.frcoding.reatailcashregister.data.dao.UserDao
+import android.util.Log
+import com.frcoding.reatailcashregister.data.dao.UserApi
+import com.frcoding.reatailcashregister.data.dto.LoginRequest
+import com.frcoding.reatailcashregister.data.mappers.toUser
+import com.frcoding.reatailcashregister.data.mappers.toUserDto
 import com.frcoding.reatailcashregister.data.prefs.SessionManager
 import com.frcoding.reatailcashregister.models.User
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import javax.inject.Inject
 
 class UserRepository @Inject constructor(
-    private val userDao: UserDao,
+    private val userApi: UserApi,
     private val sessionManager: SessionManager
 ) {
     suspend fun registerUser(user: User) {
-        userDao.registerUser(user)
+        val response = userApi.registerUser(user.toUserDto())
+        if (response.isSuccessful) {
+            Log.d("Register", "Uspešno registrovan")
+        } else {
+            Log.e("Register", "Greška: ${response.code()} - ${response.errorBody()?.string()}")
+        }
     }
 
     suspend fun loginUser(username: String, password: String): User? {
-        val user = userDao.loginUser(username, password)
-        if (user != null) {
-            sessionManager.saveUserId(user.id)
-        }
-        return user
-    }
-
-    fun getUserById(userId: Int): Flow<User> {
-        return userDao.getUserById(userId)
-    }
-
-    suspend fun logOutUser() {
-        val userId = sessionManager.getUserId()
-        if (userId != null) {
-            sessionManager.clearSession()
+        val loginRequest = LoginRequest(username, password)
+        val response = userApi.loginUser(loginRequest)
+        return if (response.isSuccessful) {
+            val userDto = response.body()
+            userDto?.let {
+                sessionManager.saveUserId(it.id!!)
+                it.toUser()
+            }
+        } else {
+            null
         }
     }
-
 }

@@ -2,7 +2,6 @@ package com.frcoding.reatailcashregister.screens
 
 const val TOTAL_PRICE = "total_price"
 sealed class Screen(val route: String) {
-    // add pass methods if needed
     object SignIn: Screen("sign_in_screen")
     object SignUp: Screen("sign_up_screen")
     object Main: Screen("main_screen")

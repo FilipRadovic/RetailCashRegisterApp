@@ -24,7 +24,7 @@ class InvoiceViewModel @Inject constructor(
         fetchInvoices()
     }
 
-    fun addInvoice(userId: Int, totalPrice: Double, paymentMethod: String) {
+    fun addInvoice(userId: Long, totalPrice: Double, paymentMethod: String) {
         viewModelScope.launch {
             val invoice = Invoice(
                 userId = userId,
@@ -44,5 +44,4 @@ class InvoiceViewModel @Inject constructor(
                 }
         }
     }
-
 }

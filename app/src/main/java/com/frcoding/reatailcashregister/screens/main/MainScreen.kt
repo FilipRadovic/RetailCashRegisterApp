@@ -72,6 +72,11 @@ import com.frcoding.reatailcashregister.screens.Screen
 import kotlinx.coroutines.launch
 import java.text.DecimalFormat
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Button
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,9 +93,25 @@ fun MainScreen(
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true
     )
-    val items by viewModel.items.collectAsState(initial = emptyList())
 
-    val totalPrice = items.sumOf { it.price }
+    var items by remember { mutableStateOf(emptyList<Item>()) }
+    val itemsFlow = viewModel.items.collectAsState(initial = emptyList())
+    items = itemsFlow.value
+
+    var discount by rememberSaveable { mutableStateOf(0.0) }
+
+    val totalPrice = items.sumOf {
+        val quantity = it.quantity.toDoubleOrNull() ?: 0.0
+        val discountedPrice = it.price * (1 - discount / 100)
+        discountedPrice * quantity
+    }
+
+    fun applyDiscount(newDiscount: Double) {
+        discount = newDiscount
+    }
+
+    val discountSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+    var isDiscountSheetVisible by rememberSaveable { mutableStateOf(false) }
 
 
     ModalNavigationDrawer(
@@ -100,11 +121,9 @@ fun MainScreen(
         },
         scrimColor = Color.Black.copy(alpha = 0.5f)
     ) {
-        // Main content of the screen
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             topBar = {
-                // Define TopBar if needed
                 TopAppBar(
                     title = { Text(text = "Cash Register", fontSize = 20.sp) },
                     navigationIcon = {
@@ -127,23 +146,7 @@ fun MainScreen(
                     )
                 )
             },
-//            floatingActionButton = {
-//                FloatingActionButton(
-//                    onClick = {
-//                        coroutineScope.launch {
-//                            itemToEdit = null
-//                            isBottomSheetVisible = true
-//                            sheetState.expand()
-//                        }
-//                    },
-//                    modifier = Modifier
-//                        .padding(16.dp)
-//                ) {
-//                    Icon(imageVector = Icons.Filled.Add, contentDescription = "Add Product")
-//                }
-//            }
-        ) {innerPadding ->
-            // showing items on main screen
+        ) { innerPadding ->
             Column(
                 modifier = Modifier
                     .padding(innerPadding)
@@ -172,50 +175,68 @@ fun MainScreen(
                     }
                 }
 
-//                Text(
-//                    text = "Total: ${"%.2f".format(totalPrice)}",
-//                    modifier = Modifier
-//                        .padding(start = 16.dp),
-//                    style = MaterialTheme.typography.bodyMedium
-//                )
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .weight(1f),
+                            horizontalAlignment = Alignment.Start
+                        ) {
+                            Text(
+                                text = "Total: ${"%.2f".format(totalPrice)}",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
 
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                        .align(Alignment.CenterHorizontally),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Total price text
-                    Text(
-                        text = "Total: ${"%.2f".format(totalPrice)}",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Bold
-                    )
+                        Column(
+                            modifier = Modifier
+                                .weight(1f),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            OutlinedButton(
+                                onClick = {
+                                    coroutineScope.launch {
+                                        isDiscountSheetVisible = true
+                                        sheetState.expand()
+                                    }
+                                },
+                                content = { Text(text = "Discount") }
+                            )
 
-                    // Continue button
-                    OutlinedButton(
-                        onClick = {
-                            navController.navigate(Screen.Payment.passTotalPrice("${"%.2f".format(totalPrice)}"))
-                        },
-                        content = { Text(text = "Continue") }
-                    )
+                            OutlinedButton(
+                                onClick = {
+                                    navController.navigate(Screen.Payment.passTotalPrice("${"%.2f".format(totalPrice)}"))
+                                },
+                                content = { Text(text = "Continue") }
+                            )
+                        }
 
-                    // Floating Action Button
-                    FloatingActionButton(
-                        onClick = {
-                            coroutineScope.launch {
-                                itemToEdit = null
-                                isBottomSheetVisible = true
-                                sheetState.expand()
+                        Column(
+                            modifier = Modifier
+                                .weight(1f),
+                            horizontalAlignment = Alignment.End
+                        ) {
+                            FloatingActionButton(
+                                onClick = {
+                                    coroutineScope.launch {
+                                        itemToEdit = null
+                                        isBottomSheetVisible = true
+                                        sheetState.expand()
+                                    }
+                                }
+                            ) {
+                                Icon(imageVector = Icons.Filled.Add, contentDescription = "Add Product")
                             }
                         }
-                    ) {
-                        Icon(imageVector = Icons.Filled.Add, contentDescription = "Add Product")
                     }
                 }
-
             }
         }
 
@@ -230,12 +251,22 @@ fun MainScreen(
             itemToEdit = itemToEdit,
             onSave = {updatedItem ->
                 if (itemToEdit == null) {
-                    viewModel.addItem(updatedItem) // adding new item
+                    viewModel.addItem(updatedItem)
                 } else {
-                    viewModel.updateItem(updatedItem) // updating existing item
+                    viewModel.updateItem(updatedItem)
                 }
                 isBottomSheetVisible = false
                 itemToEdit = null
+            }
+        )
+
+        DiscountBottomSheet(
+            isDiscountSheetVisible = isDiscountSheetVisible,
+            sheetState = discountSheetState,
+            onDismiss = { isDiscountSheetVisible = false },
+            onApplyDiscount = { newDiscount ->
+                applyDiscount(newDiscount)
+                isDiscountSheetVisible = false
             }
         )
     }
@@ -247,7 +278,9 @@ fun ItemCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
-    val decimalFormat = DecimalFormat("#.00") // Format za cenu sa dva decimalna mesta
+    val quantity = item.quantity.toDoubleOrNull() ?: 0.0
+    val totalPriceItem = item.price * quantity
+    val decimalFormat = DecimalFormat("#.00")
 
     Card(
         modifier = Modifier
@@ -286,14 +319,11 @@ fun ItemCard(
                     .padding(start = 8.dp)
             ) {
                 Text(text = "Price:", fontWeight = FontWeight.Bold)
-                Text(text = decimalFormat.format(item.price))
+                Text(text = decimalFormat.format(totalPriceItem))
             }
 
             Column(
-                modifier = Modifier
-                    .weight(0.5f)
-                    .padding(start = 8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                modifier = Modifier.weight(0.5f)
             ) {
                 IconButton(onClick = { onEdit() }) {
                     Icon(
@@ -304,16 +334,76 @@ fun ItemCard(
             }
 
             Column(
-                modifier = Modifier
-                    .weight(0.5f)
-                    .padding(start = 8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                modifier = Modifier.weight(0.5f)
             ) {
                 IconButton(onClick = { onDelete() }) {
                     Icon(
                         imageVector = Icons.Default.Delete,
                         contentDescription = "Delete"
                     )
+                }
+            }
+        }
+    }
+}
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DiscountBottomSheet(
+    isDiscountSheetVisible: Boolean,
+    sheetState: SheetState,
+    onDismiss: () -> Unit,
+    onApplyDiscount: (Double) -> Unit
+) {
+    var discountInput by remember { mutableStateOf("") }
+
+    if (isDiscountSheetVisible) {
+        ModalBottomSheet(
+            onDismissRequest = onDismiss,
+            sheetState = sheetState,
+            containerColor = Color.Transparent,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            shape = RectangleShape,
+            dragHandle = null,
+            scrimColor = Color.Black.copy(alpha = .5f)
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .clip(shape = RoundedCornerShape(16.dp))
+                    .background(color = MaterialTheme.colorScheme.background)
+                    .fillMaxWidth()
+                    .padding(24.dp)
+            ) {
+                Text(
+                    text = "Enter Discount (%)",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                OutlinedTextField(
+                    value = discountInput,
+                    onValueChange = { discountInput = it },
+                    label = { Text("Discount") },
+                    keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
+                    keyboardActions = KeyboardActions(onDone = {
+                        // Hide keyboard when done
+                    }),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(
+                    onClick = {
+                        val discount = discountInput.toDoubleOrNull() ?: 0.0
+                        onApplyDiscount(discount)
+                        onDismiss()
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Apply")
                 }
             }
         }
@@ -329,32 +419,28 @@ fun BottomSheet(
     sheetState: SheetState,
     onDismiss: () -> Unit,
     viewModel: MainViewModel,
-    itemToEdit: Item? = null, // Parametar za uređivanje
-    onSave: (Item) -> Unit // Callback za sačuvane promene
+    itemToEdit: Item? = null,
+    onSave: (Item) -> Unit,
 ) {
 
     var productName by remember { mutableStateOf(itemToEdit?.name ?: "") }
     var quantity by remember { mutableStateOf(itemToEdit?.quantity ?: "") }
     var priceString by remember { mutableStateOf(itemToEdit?.price?.toString() ?: "") }
 
-    // Launch effect when itemToEdit changes or BottomSheet visibility changes
+    val price = priceString.toDoubleOrNull() ?: 0.0
+    val quantityDouble = quantity.toDoubleOrNull() ?: 0.0
+    val totalPrice = price * quantityDouble
+    val formattedPrice = String.format("%.2f", totalPrice)
+
     LaunchedEffect(itemToEdit, isBottomSheetVisible) {
         if (isBottomSheetVisible) {
             productName = itemToEdit?.name ?: ""
-            quantity = itemToEdit?.quantity ?: ""
+            quantity = itemToEdit?.quantity?.toString() ?: ""
             priceString = itemToEdit?.price?.toString() ?: ""
         }
     }
 
-    val decimalFormat = DecimalFormat("#.##") // Format za cenu
-
-    fun parsePrice(input: String): Double {
-        return input.toDoubleOrNull() ?: 0.0
-    }
-
-
     if (isBottomSheetVisible) {
-
         ModalBottomSheet(
             onDismissRequest = onDismiss,
             sheetState = sheetState,
@@ -364,7 +450,6 @@ fun BottomSheet(
             dragHandle = null,
             scrimColor = Color.Black.copy(alpha = .5f)
         ) {
-
             Box(
                 modifier = Modifier
                     .statusBarsPadding()
@@ -372,7 +457,6 @@ fun BottomSheet(
                     .padding(8.dp),
                 contentAlignment = Alignment.Center
             ) {
-
                 FilledIconButton(
                     modifier = Modifier.size(48.dp),
                     onClick = onDismiss,
@@ -380,7 +464,6 @@ fun BottomSheet(
                         containerColor = MaterialTheme.colorScheme.background
                     )
                 ) {
-
                     Icon(
                         imageVector = Icons.Rounded.Close,
                         contentDescription = "Dismiss the dialog."
@@ -391,11 +474,11 @@ fun BottomSheet(
             Column(
                 modifier = Modifier
                     .navigationBarsPadding()
-                    .padding(12.dp) // Outer padding
+                    .padding(12.dp)
                     .clip(shape = RoundedCornerShape(24.dp))
                     .background(color = MaterialTheme.colorScheme.background)
                     .fillMaxWidth()
-                    .padding(24.dp) // Inner padding
+                    .padding(24.dp)
             ) {
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -427,6 +510,15 @@ fun BottomSheet(
                     shape = RoundedCornerShape(12.dp)
                 )
 
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Text(
+                    text = "Total Price: $formattedPrice",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
+                )
+
                 Spacer(modifier = Modifier.height(48.dp))
 
                 Row(
@@ -436,9 +528,6 @@ fun BottomSheet(
                 ) {
                     OutlinedButton(
                         onClick = {
-                            // handle saving
-                            val price = parsePrice(priceString)
-
                             val updatedItem = itemToEdit?.copy(
                                 name = productName,
                                 quantity = quantity,
@@ -451,7 +540,6 @@ fun BottomSheet(
 
                             onSave(updatedItem)
 
-                            // Clear all fields
                             productName = ""
                             quantity = ""
                             priceString = ""
@@ -465,7 +553,6 @@ fun BottomSheet(
         }
 
     }
-
 }
 
 

@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -15,7 +14,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -49,6 +47,8 @@ import com.frcoding.reatailcashregister.R
 import com.frcoding.reatailcashregister.data.prefs.SessionManager
 import com.frcoding.reatailcashregister.screens.InvoiceViewModel
 import com.frcoding.reatailcashregister.screens.main.MainViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -92,22 +92,25 @@ fun PaymentScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.Center
     ) {
-        // First Row with text
-        Text(
-            text = "Select a payment method:",
-            style = MaterialTheme.typography.headlineLarge,  // Larger text style
+        Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp)
-        )
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = "Select a payment method:",
+                style = MaterialTheme.typography.headlineLarge,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp)
+            )
+        }
 
-        // Second Row with payment method icons
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 16.dp)
         ) {
-            // Column for Credit Card
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -119,7 +122,7 @@ fun PaymentScreen(
                     painter = painterResource(id = R.drawable.credit_card),  // Icon for credit card
                     contentDescription = "Credit Card",
                     modifier = Modifier
-                        .size(120.dp)  // Adjust size as needed
+                        .size(120.dp)
                         .clickable {
                             openBottomSheet()
                         }
@@ -146,7 +149,6 @@ fun PaymentScreen(
                 )
             }
 
-            // Column for Cash
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -158,7 +160,7 @@ fun PaymentScreen(
                     painter = painterResource(id = R.drawable.cash),  // Icon for cash
                     contentDescription = "Cash",
                     modifier = Modifier
-                        .size(120.dp)  // Adjust size as needed
+                        .size(120.dp)
                         .clickable {
                             openCashSheet()
                         }
@@ -186,8 +188,6 @@ fun PaymentScreen(
             }
         }
     }
-
-
 }
 
 
@@ -202,7 +202,7 @@ fun PaymentBottomSheet(
     mainViewModel: MainViewModel = hiltViewModel(),
     invoiceViewModel: InvoiceViewModel,
     navController: NavController,
-    userId: Int
+    userId: Long
 ) {
     if (isBottomSheetVisible) {
         ModalBottomSheet(
@@ -216,14 +216,13 @@ fun PaymentBottomSheet(
         ) {
             Column(
                 modifier = Modifier
-                    .padding(16.dp)  // Adjust padding as needed
+                    .padding(16.dp)
                     .clip(shape = RoundedCornerShape(16.dp))
                     .background(color = MaterialTheme.colorScheme.background)
                     .fillMaxWidth()
-                    .padding(16.dp),  // Inner padding
+                    .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Close Button
                 IconButton(
                     onClick = onDismiss,
                     modifier = Modifier.align(Alignment.End)
@@ -236,7 +235,6 @@ fun PaymentBottomSheet(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Text "Total to pay:"
                 Text(
                     text = "Total to pay:",
                     style = MaterialTheme.typography.titleMedium,
@@ -245,7 +243,6 @@ fun PaymentBottomSheet(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Total Price Field
                 Text(
                     text = "%.2f".format(totalPrice),
                     style = MaterialTheme.typography.bodyLarge,
@@ -254,20 +251,20 @@ fun PaymentBottomSheet(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Finish Button
                 Button(
                     onClick = {
-                        // Handle Finish action
                         invoiceViewModel.addInvoice(
                             userId = userId,
                             totalPrice = totalPrice,
                             "Credit Card"
                         )
-                        mainViewModel.deleteAllItems()
-                        onDismiss()
-                        navController.navigate("main_screen") {
-                            popUpTo("payment_screen") {
-                                inclusive = true
+                        CoroutineScope(Dispatchers.Main).launch {
+                            mainViewModel.deleteAllItems()
+                            onDismiss()
+                            navController.navigate("main_screen") {
+                                popUpTo("payment_screen") {
+                                    inclusive = true
+                                }
                             }
                         }
                     },
@@ -291,14 +288,12 @@ fun CashBottomSheet(
     mainViewModel: MainViewModel = hiltViewModel(),
     invoiceViewModel: InvoiceViewModel,
     navController: NavController,
-    userId: Int
+    userId: Long
 ) {
-    // State variables for user input and validation
     var amountPaid by remember { mutableStateOf("") }
     var changeToReturn by remember { mutableStateOf("0.0") }
     var isAmountValid by remember { mutableStateOf(true) }
 
-    // Recalculate change when amountPaid or totalPrice changes
     LaunchedEffect(amountPaid, totalPrice) {
         val amount = amountPaid.toDoubleOrNull() ?: 0.0
         isAmountValid = amount >= totalPrice
@@ -317,14 +312,13 @@ fun CashBottomSheet(
         ) {
             Column(
                 modifier = Modifier
-                    .padding(16.dp)  // Adjust padding as needed
+                    .padding(16.dp)
                     .clip(shape = RoundedCornerShape(16.dp))
                     .background(color = MaterialTheme.colorScheme.background)
                     .fillMaxWidth()
-                    .padding(16.dp),  // Inner padding
+                    .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Close Button
                 IconButton(
                     onClick = onDismiss,
                     modifier = Modifier.align(Alignment.End)
@@ -337,7 +331,6 @@ fun CashBottomSheet(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Text "Total to pay:"
                 Text(
                     text = "Total to pay:",
                     style = MaterialTheme.typography.titleMedium,
@@ -346,7 +339,6 @@ fun CashBottomSheet(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Total Price Field
                 Text(
                     text = "%.2f".format(totalPrice),
                     style = MaterialTheme.typography.bodyLarge,
@@ -355,7 +347,6 @@ fun CashBottomSheet(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Text "The customer paid a total of:"
                 Text(
                     text = "The customer paid a total of:",
                     style = MaterialTheme.typography.titleMedium,
@@ -364,7 +355,6 @@ fun CashBottomSheet(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Amount Paid Field
                 OutlinedTextField(
                     modifier = Modifier.fillMaxWidth(),
                     value = amountPaid,
@@ -378,7 +368,6 @@ fun CashBottomSheet(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Text "Change to return:"
                 Text(
                     text = "Change to return:",
                     style = MaterialTheme.typography.titleMedium,
@@ -387,7 +376,6 @@ fun CashBottomSheet(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Change to Return Field
                 Text(
                     text = changeToReturn,
                     style = MaterialTheme.typography.bodyLarge,
@@ -396,10 +384,8 @@ fun CashBottomSheet(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Finish Button
                 Button(
                     onClick = {
-                        // Handle Finish action
                         if (isAmountValid) {
                             invoiceViewModel.addInvoice(
                                 userId = userId,
@@ -407,11 +393,13 @@ fun CashBottomSheet(
                                 paymentMethod = "Cash"
                             )
                             amountPaid = ""
-                            mainViewModel.deleteAllItems()
-                            onDismiss()
-                            navController.navigate("main_screen") {
-                                popUpTo("payment_screen") {
-                                    inclusive = true
+                            CoroutineScope(Dispatchers.Main).launch {
+                                mainViewModel.deleteAllItems()
+                                onDismiss()
+                                navController.navigate("main_screen") {
+                                    popUpTo("payment_screen") {
+                                        inclusive = true
+                                    }
                                 }
                             }
                         }

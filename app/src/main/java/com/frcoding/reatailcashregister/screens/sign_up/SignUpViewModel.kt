@@ -36,7 +36,6 @@ class SignUpViewModel @Inject constructor(
             throw Exception("Password do not match")
         }
         val user = User(
-            id = 0,
             username = username.value,
             password = password.value
         )
@@ -44,12 +43,9 @@ class SignUpViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 userRepository.registerUser(user)
-                // Possibly navigate to sign-in screen or show a success message
             } catch (e: Exception) {
-                // Obrada greske ako se registracija ne uspe
                 Log.e("SignUp", "Error registering user: ${e.message}")
             }
         }
     }
-
 }
